@@ -108,6 +108,12 @@
         }
 <script>
         window.onload = loadProgress;
+
+function uncheckAll() {
+    document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+        checkbox.checked = false;
+    });
+}
     </script>
     <script>
 document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
