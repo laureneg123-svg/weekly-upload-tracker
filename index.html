@@ -132,6 +132,18 @@ document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
         }
     });
 });
+</script>  
+script>
+document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox, idx) {
+    // Restore state from localStorage
+    const saved = localStorage.getItem('checkbox_' + idx);
+    if (saved !== null) checkbox.checked = saved === 'true';
+
+    // Save state on click
+    checkbox.addEventListener('change', function() {
+        localStorage.setItem('checkbox_' + idx, checkbox.checked);
+    });
+});
 </script>
 </body>
 </html>
