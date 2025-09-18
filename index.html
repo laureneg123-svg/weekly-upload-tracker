@@ -135,13 +135,31 @@ document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
 </script>  
 <script>
 document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox, idx) {
-    // Restore state from localStorage
+    // Restore checked state
     const saved = localStorage.getItem('checkbox_' + idx);
     if (saved !== null) checkbox.checked = saved === 'true';
 
-    // Save state on click
-    checkbox.addEventListener('change', function() {
+    // Restore color
+    const savedColor = localStorage.getItem('checkbox_' + idx + '_color');
+    if (savedColor !== null) checkbox.style.accentColor = savedColor;
+
+    // Restore click count (for color logic)
+    let clickCount = parseInt(localStorage.getItem('checkbox_' + idx + '_clickCount') || '0');
+
+    // Save state and color on click
+    checkbox.addEventListener('click', function() {
+        // Save checked state
         localStorage.setItem('checkbox_' + idx, checkbox.checked);
+
+        // Update click count and color
+        clickCount = (clickCount + 1) % 3;
+        localStorage.setItem('checkbox_' + idx + '_clickCount', clickCount);
+
+        let colorValue = '';
+        if (clickCount === 1) colorValue = 'green';
+        else if (clickCount === 2) colorValue = 'red';
+        checkbox.style.accentColor = colorValue;
+        localStorage.setItem('checkbox_' + idx + '_color', colorValue);
     });
 });
 </script>
