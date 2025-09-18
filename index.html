@@ -133,21 +133,5 @@ document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
     });
 });
 </script>  
-<script>
-document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
-    // Use the checkbox's id as the key
-    var key = checkbox.id || ''; // fallback to empty string if no id
-    if (key) {
-        // Restore state from localStorage
-        const saved = localStorage.getItem(key);
-        if (saved !== null) checkbox.checked = saved === 'true';
-
-        // Save state on click
-        checkbox.addEventListener('change', function() {
-            localStorage.setItem(key, checkbox.checked);
-        });
-    }
-});
-</script>
 </body>
 </html>
