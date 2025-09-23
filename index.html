@@ -184,20 +184,12 @@
           cb.dispatchEvent(new Event('change', { bubbles: true }));
         };
 
-        // Use mousedown to override default toggle order; also support keyboard Space
+        // Use mousedown to override default toggle order;
        
 // left-click (and tap) — prevent native toggle, run our tri-state cycle
 cb.addEventListener('click', (e) => {
   e.preventDefault();
   cycle();
-});
-
-// keyboard support (Space toggles)
-cb.addEventListener('keydown', (e) => {
-  if (e.key === ' ') {
-    e.preventDefault();
-    cycle();
-  }
 });
 
 // (optional) block right-click context menu on the checkbox if you prefer
