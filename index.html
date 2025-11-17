@@ -21,8 +21,11 @@
     textarea.comment { width: 100%; min-height: 32px; resize: vertical; border: 1px solid #ddd; padding: 4px; }
     .logo { height: 40px; }
     .muted { color: #666; font-size: 0.9rem; }
+    .status { padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+    .status.connected { background: #c8e6c9; color: #2e7d32; }
+    .status.disconnected { background: #ffcdd2; color: #c62828; }
+    .status.loading { background: #fff3e0; color: #ef6c00; }
     
-    /* Tri-state checkbox styling */
     input[type="checkbox"].cb-state {
       width: 20px;
       height: 20px;
@@ -71,8 +74,12 @@
 <body>
   <header>
     <h1>Weekly Upload Tracker</h1>
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA/wAAADcCAIAAABChz0HAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAACFJElEQVR4nO39d3wcx5nnjz9PVfcEACRBAiRBgCSYsySKQRKVLcnSWrYle9dWtvd279a/u737XvDKlhx277vJlrPX3vDbu9vgs60cLNtykGwFKktUYM4kSJAEwQCCAZjUVc/3j+ru6Z4ZDNIkgM/7ZVOYmZ7umuru6k899QQkImAYhmEYhmEYZvwiqt0AhmEYhmEYhmHKC4t+hmEYhmEYhhnnsOhnGIZhGIZhmHEOi36GYRiGYRiGGeew6GcYhmEYhmGYcQ6LfoZhGIZhGIYZ57DoZxiGYRiGYZhxDot+hmEYhmEYhhnnsOhnGIZhGIZhmHEOi36GYRiGYRiGGeew6GcYhmEYhmGYcQ6LfoZhGIZhGIYZ57DoZxiGYRiGYZhxDot+hmEYhmEYhhnnsOhnGIZhGIZhmHEOi36GYRiGYRiGGeew6GcYhmEYhmGYcQ6LfoZhGIZhGIYZ57DoZxiGYRiGYZhxDot+hmEYhmEYhhnnsOhnGIZhGIZhmHEOi36GYRiGYRiGGeew6GcYhmEYhmGYcQ6LfoZhGIZhGIYZ57DoZxiGYRiGYZhxDot+hmEYhmEYhhnnsOhnGIZhGIZhmHEOi36GYRiGYRiGGeew6GcYhmEYhmGYcQ6LfoZhGIZhGIYZ57DoZxiGYRiGYZhxDot+hmEYhmEYhhnnsOhnGIZhGIZhmHEOi36GYRiGYRiGGeew6GcYhmEYhmGYcQ6LfoZhGIZhGIYZ57DoLwvk/n9QdPGdEA1pLwzDMAzDMAxTBBb9ZQHd/wPlyXa" alt="Waystar Logo" class="logo">
+    <div style="margin: 15px 0;">
+      <!-- Replace with your Waystar logo -->
+      <img src="waystar-logo.png" alt="Waystar Logo" style="height: 50px;" onerror="this.style.display='none'">
+    </div>
     <h3>PE & PM Upload Tracker</h3>
+    <div id="connection-status" class="status loading">Connecting to database...</div>
     <div class="muted">Week of <span id="week-range">Loading…</span></div>
     <div class="toolbar">
       <button id="btn-prev-week" type="button">← Previous Week</button>
@@ -110,7 +117,28 @@
     </tbody>
   </table>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
   <script>
+    // ============================================
+    // REPLACE THIS WITH YOUR FIREBASE CONFIG
+    // ============================================
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    // ============================================
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
     const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -145,9 +173,19 @@
 
     function safeId(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
 
+    // Update connection status
+    function setStatus(status) {
+      const el = document.getElementById('connection-status');
+      el.className = 'status ' + status;
+      if (status === 'connected') el.textContent = '✓ Connected to database';
+      else if (status === 'disconnected') el.textContent = '✗ Disconnected';
+      else if (status === 'loading') el.textContent = 'Loading...';
+    }
+
     // Global state
     let currentMonday = getMonday(new Date());
     const actualCurrentMonday = getMonday(new Date());
+    let unsubscribe = null; // Firebase listener
     
     const table = document.getElementById('tracker');
     const tbody = table.tBodies[0];
@@ -155,98 +193,134 @@
 
     // Build initial table structure (only once)
     rows.forEach((tr) => {
-      const routeName = tr.cells[0].textContent.trim();
-      
-      // Add day cells
       for (let i = 0; i < 5; i++) {
         const td = document.createElement('td');
         td.classList.add('center');
         td.dataset.dayIndex = i;
         tr.appendChild(td);
       }
-
-      // Add comment cell
       const commentTd = document.createElement('td');
       tr.appendChild(commentTd);
     });
 
+    // Save data to Firestore
+    async function saveToFirestore(weekKey, routeId, data) {
+      try {
+        await db.collection('weeks').doc(weekKey).set({
+          [routeId]: data
+        }, { merge: true });
+      } catch (error) {
+        console.error('Error saving:', error);
+        setStatus('disconnected');
+      }
+    }
+
+    // Load week data from Firestore with real-time updates
     function loadWeekData(monday) {
       const weekKey = ymd(monday);
-      const STORE_PREFIX = `uploadTracker:${weekKey}:`;
       const friday = addDays(monday, 4);
       
       document.getElementById('week-range').textContent = formatWeekRange(monday, friday);
+      setStatus('loading');
 
+      // Unsubscribe from previous listener
+      if (unsubscribe) unsubscribe();
+
+      // Clear current UI
       rows.forEach((tr) => {
         const routeName = tr.cells[0].textContent.trim();
         const routeId = safeId(routeName);
 
-        // Load checkboxes
+        // Create checkboxes
         for (let i = 0; i < 5; i++) {
           const td = tr.cells[i + 1];
-          td.innerHTML = ''; // Clear existing content
+          td.innerHTML = '';
           
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.className = 'cb-state';
           cb.id = `cb_${routeId}_${i}`;
+          cb.dataset.routeId = routeId;
+          cb.dataset.dayIndex = i;
           
-          const stateKey = `${STORE_PREFIX}${routeId}_${i}_state`;
-          const savedState = localStorage.getItem(stateKey) || 'empty';
-          
-          if (savedState === 'green') {
-            cb.classList.add('green');
-          } else if (savedState === 'red') {
-            cb.classList.add('red');
-          }
-          
-          cb.addEventListener('click', (e) => {
+          cb.addEventListener('click', async (e) => {
             e.preventDefault();
             
             const current = cb.classList.contains('green') ? 'green' : 
                            cb.classList.contains('red') ? 'red' : 'empty';
             
+            let newState = 'empty';
             cb.classList.remove('green', 'red');
             
             if (current === 'empty') {
+              newState = 'green';
               cb.classList.add('green');
-              localStorage.setItem(stateKey, 'green');
             } else if (current === 'green') {
+              newState = 'red';
               cb.classList.add('red');
-              localStorage.setItem(stateKey, 'red');
-            } else {
-              localStorage.removeItem(stateKey);
             }
+            
+            // Save to Firestore
+            const routeData = {};
+            routeData[`day${i}`] = newState;
+            await saveToFirestore(weekKey, routeId, routeData);
           });
           
           td.appendChild(cb);
         }
 
-        // Load comment
+        // Create comment textarea
         const commentTd = tr.cells[6];
         commentTd.innerHTML = '';
         
         const ta = document.createElement('textarea');
         ta.className = 'comment';
         ta.placeholder = 'Notes…';
-        
-        const commentKey = `${STORE_PREFIX}${routeId}_comment`;
-        const saved = localStorage.getItem(commentKey);
-        if (saved) ta.value = saved;
+        ta.dataset.routeId = routeId;
 
         let timeout;
         ta.addEventListener('input', () => {
           clearTimeout(timeout);
-          timeout = setTimeout(() => {
-            if (ta.value.trim() === '') {
-              localStorage.removeItem(commentKey);
-            } else {
-              localStorage.setItem(commentKey, ta.value);
-            }
-          }, 300);
+          timeout = setTimeout(async () => {
+            await saveToFirestore(weekKey, routeId, { comment: ta.value });
+          }, 500);
         });
 
         commentTd.appendChild(ta);
+      });
+
+      // Subscribe to real-time updates
+      unsubscribe = db.collection('weeks').doc(weekKey).onSnapshot((doc) => {
+        setStatus('connected');
+        
+        if (doc.exists) {
+          const data = doc.data();
+          
+          rows.forEach((tr) => {
+            const routeName = tr.cells[0].textContent.trim();
+            const routeId = safeId(routeName);
+            const routeData = data[routeId] || {};
+
+            // Update checkboxes
+            for (let i = 0; i < 5; i++) {
+              const cb = tr.cells[i + 1].querySelector('input.cb-state');
+              const state = routeData[`day${i}`] || 'empty';
+              
+              cb.classList.remove('green', 'red');
+              if (state === 'green') cb.classList.add('green');
+              else if (state === 'red') cb.classList.add('red');
+            }
+
+            // Update comment
+            const ta = tr.cells[6].querySelector('textarea.comment');
+            if (routeData.comment !== undefined && ta.value !== routeData.comment) {
+              ta.value = routeData.comment;
+            }
+          });
+        }
+      }, (error) => {
+        console.error('Firestore error:', error);
+        setStatus('disconnected');
       });
     }
 
@@ -267,22 +341,18 @@
     });
 
     // Clear Week button
-    document.getElementById('btn-uncheck').addEventListener('click', () => {
-      if (!confirm('Clear all checkboxes and comments for this week?')) return;
+    document.getElementById('btn-uncheck').addEventListener('click', async () => {
+      if (!confirm('Clear all checkboxes and comments for this week? This affects ALL users.')) return;
 
       const weekKey = ymd(currentMonday);
-      const STORE_PREFIX = `uploadTracker:${weekKey}:`;
-
-      // Clear localStorage for current week
-      const toRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(STORE_PREFIX)) toRemove.push(k);
-      }
-      toRemove.forEach(k => localStorage.removeItem(k));
       
-      // Reload the week
-      loadWeekData(currentMonday);
+      try {
+        await db.collection('weeks').doc(weekKey).delete();
+        loadWeekData(currentMonday);
+      } catch (error) {
+        console.error('Error clearing:', error);
+        alert('Error clearing data');
+      }
     });
 
     // Export to CSV
@@ -324,7 +394,7 @@
       URL.revokeObjectURL(url);
     });
 
-    // Load initial week (current week)
+    // Load initial week
     loadWeekData(currentMonday);
   </script>
 </body>
